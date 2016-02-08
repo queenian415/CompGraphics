@@ -19,10 +19,10 @@ CFLAGS        = -Wall -c -g
 CCCFLAGS      = -Wall -c -g
 
 # Define C/C++ pre-processor options
-CPPFLAGS      = -I./ -I/usr/X11/include -I/opt/local/include 
+CPPFLAGS = -I./ -I/usr/X11/include -I/usr/local/opt/glui/include
 
 # Define location of OpenGL and GLU libraries along with their lib names
-GL_LIBS       = -dylib_file /System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib:/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib -L/opt/local/lib -lGLU -lGL -framework GLUT -lglui
+GL_LIBS = -dylib_file /System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib:/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib -L/usr/local/opt/glui/lib -lGLU -lGL -lglut -lglui
 
 # Define location of X Windows libraries,  and the X11 library names
 XLIBS         = -L/usr/X11R6/lib -L/usr/lib -lX11 

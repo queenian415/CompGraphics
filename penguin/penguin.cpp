@@ -34,10 +34,10 @@
 #include <windows.h>
 #endif
 
-#include <GL/gl.h>
-#include <GL/glu.h>
-#include <GL/glut.h>
-#include <glui.h>
+#include <OpenGL/gl.h>
+#include <OpenGL/glu.h>
+#include <GLUT/glut.h>
+#include <GL/glui.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -65,6 +65,39 @@ const float PI = 3.14159;
 int windowID;               // Glut window ID (for display)
 GLUI *glui;                 // Glui window (for controls)
 int Win[2];                 // window (x,y) size
+
+
+// ---------------- POLYGON VARIABLES -----------------------
+// Head
+const float HEAD_HEIGHT = 40;
+const float FACE_HEIGHT = 30;
+const float UPPER_WIDTH = 30;
+const float LOWER_WIDTH = 50;
+// Mouth
+const float MOUTH_LENGTH = 28;
+const float MOUTH_TIP = 5;
+const float MOUTH_BACK = 10;
+// Beak
+const float BEAK_LENGTH = 28;
+const float BEAK_WIDTH = 5;
+// Body
+const float BODY_HEIGHT = 90;
+const float BUTT_HEIGHT = 20;
+const float BODY_UPPER_WIDTH = 30;
+const float BODY_BUTT_WIDTH = 60;
+const float BODY_BOTTOM_WIDTH = 15;
+// Joint
+const float JOINT_OFFSET = 5;
+// Wing
+const float WING_HEIGHT = 40;
+const float WING_UPPER_WIDTH = 20;
+const float WING_LOWER_WIDTH = 10;
+// Leg
+const float LEG_HEIGHT = 30;
+const float LEG_WIDTH = 10;
+// Foot
+const float FOOT_WIDTH = 8;
+const float FOOT_LENGTH = 25;
 
 
 // ---------------- ANIMATION VARIABLES ---------------------
@@ -104,6 +137,10 @@ void GLUI_Control(int id);
 
 // Functions to help draw the object
 void drawSquare(float size);
+void drawBody();
+void drawHead();
+void drawTrapzoid();
+void drawMouth();
 
 
 // Return the current system clock (in seconds)
@@ -314,36 +351,142 @@ void display(void)
     // Push the current transformation matrix on the stack
     glPushMatrix();
         
-        // Draw the 'body'
-        glPushMatrix();
-            // Scale square to size of body
-            glScalef(BODY_WIDTH, BODY_LENGTH, 1.0);
-
-            // Set the colour to green
-            glColor3f(0.0, 1.0, 0.0);
-
-            // Draw the square for the body
-            drawSquare(1.0);
-        glPopMatrix();
-        
-        // Draw the 'arm'
-
-        // Move the arm to the joint hinge
-        glTranslatef(0.0, -BODY_LENGTH/2 + ARM_WIDTH, 0.0);
-
-        // Rotate along the hinge
-        glRotatef(joint_rot, 0.0, 0.0, 1.0);
-
-        // Scale the size of the arm
-        glScalef(ARM_WIDTH, ARM_LENGTH, 1.0);
-
-        // Move to center location of arm, under previous rotation
-        glTranslatef(0.0, -0.5, 0.0);
-
-        // Draw the square for the arm
-        glColor3f(1.0, 0.0, 0.0);
-        drawSquare(1.0);
-
+    // Draw the 'body'
+    glPushMatrix();
+    // Set the colour to green
+    glColor3f(0.0, 1.0, 0.0);
+    drawBody();
+    glPopMatrix();
+    
+    /**
+     ** Draw the head+mouth system
+     **/
+    glPushMatrix();
+    
+    // Move to the joint
+    glTranslatef(0.0, BODY_HEIGHT/2 - JOINT_OFFSET, 0.0);
+    // Rotate on the joint
+    glRotatef(joint_rot, 0.0, 0.0, 1.0);
+    
+    // First draw the head
+    glPushMatrix();
+    // Move to the location of the head
+    glTranslatef(0.0, 13, 0.0);
+    glColor3f(1.0, 0.0, 0.0);
+    drawHead();
+    glPopMatrix();
+    
+    // Second draw the mouth
+    glPushMatrix();
+    // Move to the mouth location
+    glTranslatef(-UPPER_WIDTH, MOUTH_BACK+MOUTH_TIP, 0.0);
+    glColor3f(0.0, 0.0, 0.0);
+    drawMouth();
+    glPopMatrix();
+    
+    // Third draw the beak
+    glPushMatrix();
+    // Move to the beak location
+    glTranslatef(-UPPER_WIDTH, 5, 0.0);
+    glScalef(BEAK_LENGTH, BEAK_WIDTH, 0.0);
+    glColor3f(0.0, 0.0, 0.0);
+    drawSquare(1.0);
+    glPopMatrix();
+    
+    glPopMatrix();
+    /** End of head+mouth system **/
+    
+    // Draw the wing
+    glPushMatrix();
+    // Move to the joint
+    glTranslatef(0.0, BODY_HEIGHT/4, 0.0);
+    // Rotate on the joint
+    glRotatef(joint_rot, 0.0, 0.0, 1.0);
+    // Move the center
+    glTranslatef(0.0, -WING_HEIGHT/2+JOINT_OFFSET, 0.0);
+    glColor3f(0.0, 0.0, 1.0);
+    drawTrapzoid();
+    glPopMatrix();
+    
+    /**
+     ** Draw the left leg+foot system
+     **/
+    glPushMatrix();
+    
+    // Translate to the joint of the leg
+    glTranslatef(-BODY_BUTT_WIDTH/5-JOINT_OFFSET, -BUTT_HEIGHT-8, 0.0);
+    // Rotate on the joint for the entire system
+    glRotatef(joint_rot, 0.0, 0.0, 1.0);
+    
+    // First draw the leg
+    glPushMatrix();
+    // Translate to leg's position
+    glTranslatef(0.0, -LEG_HEIGHT/3, 0.0);
+    // Scale the size of the leg
+    glScalef(LEG_WIDTH, LEG_HEIGHT, 1.0);
+    glColor3f(1.0, 0.0, 0.0);
+    drawSquare(1.0);
+    glPopMatrix();
+    
+    // Second draw the foot
+    glPushMatrix();
+    // Translate to the joint of the foot
+    glTranslatef(0.0, -LEG_HEIGHT+2*JOINT_OFFSET, 0.0);
+    // Foot's rotation on the foot's joint
+    glRotatef(joint_rot, 0.0, 0.0, 1.0);
+    // Now apply foot's indiviual translation
+    glPushMatrix();
+    glTranslatef(-FOOT_LENGTH/2+JOINT_OFFSET, 0.0, 0.0);
+    // Scale to the foot size
+    glScalef(FOOT_LENGTH, FOOT_WIDTH, 1.0);
+    glColor3f(0.0, 0.5, 0.5);
+    drawSquare(1.0);
+    glPopMatrix();
+    glPopMatrix();
+    
+    glPopMatrix();
+    /** End of left leg+foot system **/
+    
+    /**
+     ** Draw the right leg+foot system
+     **/
+    glPushMatrix();
+    
+    // Translate to the joint of the leg
+    glTranslatef(BODY_BUTT_WIDTH/5+JOINT_OFFSET, -BUTT_HEIGHT-8, 0.0);
+    // Rotate on the joint for the entire system
+    glRotatef(joint_rot, 0.0, 0.0, 1.0);
+    
+    // First draw the leg
+    glPushMatrix();
+    // Translate to leg's position
+    glTranslatef(0.0, -LEG_HEIGHT/3, 0.0);
+    // Scale the size of the leg
+    glScalef(LEG_WIDTH, LEG_HEIGHT, 1.0);
+    glColor3f(1.0, 0.0, 0.0);
+    drawSquare(1.0);
+    glPopMatrix();
+    
+    // Second draw the foot
+    glPushMatrix();
+    // Translate to the joint of the foot
+    glTranslatef(0.0, -LEG_HEIGHT+2*JOINT_OFFSET, 0.0);
+    // Foot's rotation on the foot's joint
+    glRotatef(joint_rot, 0.0, 0.0, 1.0);
+    // Now apply foot's indiviual translation
+    glPushMatrix();
+    glTranslatef(-FOOT_LENGTH/2+JOINT_OFFSET, 0.0, 0.0);
+    // Scale to the foot size
+    glScalef(FOOT_LENGTH, FOOT_WIDTH, 1.0);
+    glColor3f(0.0, 0.5, 0.5);
+    drawSquare(1.0);
+    glPopMatrix();
+    glPopMatrix();
+    
+    glPopMatrix();
+    /** End of right leg+foot system **/
+    
+    
     // Retrieve the previous state of the transformation stack
     glPopMatrix();
 
@@ -354,6 +497,52 @@ void display(void)
     // Now, show the frame buffer that we just drew into.
     // (this prevents flickering).
     glutSwapBuffers();
+}
+
+
+//Draw the body, centered at the current location
+void drawBody() {
+    glBegin(GL_POLYGON);
+    glVertex2f(-BODY_UPPER_WIDTH/2, BODY_HEIGHT/2);
+    glVertex2f(BODY_UPPER_WIDTH/2, BODY_HEIGHT/2);
+    glVertex2f(BODY_BUTT_WIDTH/2, -(BODY_HEIGHT/2 - BUTT_HEIGHT));
+    glVertex2f(BODY_BOTTOM_WIDTH/2, -BODY_HEIGHT/2);
+    glVertex2f(-BODY_BOTTOM_WIDTH/2, -BODY_HEIGHT/2);
+    glVertex2f(-BODY_BUTT_WIDTH/2, -(BODY_HEIGHT/2 - BUTT_HEIGHT));
+    glEnd();
+}
+
+
+//Draw the head, centered at the current location
+void drawHead() {
+    glBegin(GL_POLYGON);
+    glVertex2f(-5, HEAD_HEIGHT/2);
+    glVertex2f(UPPER_WIDTH/2, FACE_HEIGHT/2);
+    glVertex2f(LOWER_WIDTH/2, -FACE_HEIGHT/2);
+    glVertex2f(-LOWER_WIDTH/2, -FACE_HEIGHT/2);
+    glVertex2f(-UPPER_WIDTH/2, FACE_HEIGHT/2);
+    glEnd();
+}
+
+// Draw the mouth
+void drawMouth() {
+    glBegin(GL_POLYGON);
+    glVertex2f(-MOUTH_LENGTH/2, 0);
+    glVertex2f(MOUTH_LENGTH/2, MOUTH_BACK/2);
+    glVertex2f(MOUTH_LENGTH/2, -MOUTH_BACK/2);
+    glVertex2f(-MOUTH_LENGTH/2, -MOUTH_TIP);
+    glEnd();
+}
+
+
+// Draw the wing
+void drawTrapzoid() {
+    glBegin(GL_POLYGON);
+    glVertex2f(-WING_UPPER_WIDTH/2, WING_HEIGHT/2);
+    glVertex2f(WING_UPPER_WIDTH/2, WING_HEIGHT/2);
+    glVertex2f(WING_LOWER_WIDTH/2, -WING_HEIGHT/2);
+    glVertex2f(-WING_LOWER_WIDTH/2, -WING_HEIGHT/2);
+    glEnd();
 }
 
 
