@@ -18,10 +18,10 @@ CFLAGS        = -Wall -c -g
 CCCFLAGS      = -Wall -c -g
 
 # Define C/C++ pre-processor options
-CPPFLAGS      = -I./ -I/u/csc418h/include/fall05/include 
+CPPFLAGS      = -I./ -I/usr/include/GL 
 
 # Define location of OpenGL and GLU libraries along with their lib names
-GL_LIBS       = -L/u/csc418h/include/fall05/lib  -lGLU -lGL -lglut -lglui
+GL_LIBS       = -L/usr/include/GL  -lGLU -lGL -lglut -lglui
 
 # Define location of X Windows libraries,  and the X11 library names
 XLIBS         = -L/usr/X11R6/lib -L/usr/lib -lX11 
@@ -42,13 +42,13 @@ LINKER	      = g++
 OBJ           = $(CPPSRCS:.cpp=.o) $(CSRCS:.c=.o)
 
 # Define name of target executable
-PROGRAM	          = robot
+PROGRAM	          = penguin
 
 # Define all C source files here
 CSRCS         =
 
 # Define all C++ source files here
-CPPSRCS       = robot.cpp
+CPPSRCS       = penguin.cpp
 
 ##############################################################################
 # Define additional rules that make should know about in order to compile our
