@@ -73,6 +73,7 @@ const float HEAD_HEIGHT = 40;
 const float FACE_HEIGHT = 30;
 const float UPPER_WIDTH = 30;
 const float LOWER_WIDTH = 50;
+const float EYE_RADIUS = 5;
 // Mouth
 const float MOUTH_LENGTH = 28;
 const float MOUTH_TIP = 5;
@@ -87,7 +88,8 @@ const float BODY_UPPER_WIDTH = 30;
 const float BODY_BUTT_WIDTH = 60;
 const float BODY_BOTTOM_WIDTH = 15;
 // Joint
-const float JOINT_OFFSET = 5;
+const float JOINT_OFFSET = 3;
+const float JOINT_RADIUS = 2.5;
 // Wing
 const float WING_HEIGHT = 40;
 const float WING_UPPER_WIDTH = 20;
@@ -114,7 +116,25 @@ float joint_rot = 0.0f;
 //////////////////////////////////////////////////////
 // TODO: Add additional joint parameters here
 //////////////////////////////////////////////////////
-
+const float BEAK_MAX = 10;
+const float BEAK_MIN = 5;
+const float WING_MAX = 1;
+const float WING_MIN = 0.1;
+const float BODY_X_MIN = -40;
+const float BODY_X_MAX = 40;
+const float BODY_Y_MIN = -30;
+const float BODY_Y_MAX = 30;
+float beak_y = BEAK_MIN;
+float wing_y = WING_MAX;
+float wing_joint_rot = 0.0f;
+float left_leg_joint_rot = 0.0f;
+float right_leg_joint_rot = 0.0f;
+float left_foot_joint_rot = 10.0f;
+float right_foot_joint_rot = 10.0f;
+float body_x = 0;
+float body_y = 0;
+bool body_x_moved = false;
+bool body_y_moved = false;
 
 
 // ***********  FUNCTION HEADER DECLARATIONS ****************
@@ -139,9 +159,20 @@ void GLUI_Control(int id);
 void drawSquare(float size);
 void drawBody();
 void drawHead();
-void drawTrapzoid();
+void drawTrapzoid(float wing_y);
 void drawMouth();
+void drawCircle(float radius);
+void drawColouredCircle(float radius);
 
+// Functions to animate each part
+void animateHead();
+void animateBeak();
+void animateWing();
+void animateRightLeg();
+void animateRightFoot();
+void animateLeftLeg();
+void animateLeftFoot();
+void animateBody();
 
 // Return the current system clock (in seconds)
 double getTime();
@@ -229,17 +260,73 @@ void initGlui()
 
     // Create GLUI window
     glui = GLUI_Master.create_glui("Glui Window", 0, Win[0]+10, 0);
-
-    // Create a control to specify the rotation of the joint
-    GLUI_Spinner *joint_spinner
-        = glui->add_spinner("Joint", GLUI_SPINNER_FLOAT, &joint_rot);
-    joint_spinner->set_speed(0.1);
-    joint_spinner->set_float_limits(JOINT_MIN, JOINT_MAX, GLUI_LIMIT_CLAMP);
+    
+    GLUI_Spinner *joint_spinner[10];
+    
+    // Control for the head
+    joint_spinner[0]
+        = glui->add_spinner("Head Joint", GLUI_SPINNER_FLOAT, &joint_rot);
+    joint_spinner[0]->set_speed(0.1);
+    joint_spinner[0]->set_float_limits(JOINT_MIN, JOINT_MAX, GLUI_LIMIT_CLAMP);
 
     ///////////////////////////////////////////////////////////
     // TODO: 
     //   Add controls for additional joints here
     ///////////////////////////////////////////////////////////
+    
+    // Control for joint on wing
+    joint_spinner[1]
+    = glui->add_spinner("Wing Joint", GLUI_SPINNER_FLOAT, &wing_joint_rot);
+    joint_spinner[1]->set_speed(0.1);
+    joint_spinner[1]->set_float_limits(JOINT_MIN, JOINT_MAX, GLUI_LIMIT_CLAMP);
+
+    // Control for joint on left leg
+    joint_spinner[2]
+    = glui->add_spinner("Left Leg Joint", GLUI_SPINNER_FLOAT, &left_leg_joint_rot);
+    joint_spinner[2]->set_speed(0.1);
+    joint_spinner[2]->set_float_limits(JOINT_MIN, JOINT_MAX, GLUI_LIMIT_CLAMP);
+    
+    // Control for joint on right leg
+    joint_spinner[3]
+    = glui->add_spinner("Right Leg Joint", GLUI_SPINNER_FLOAT, &right_leg_joint_rot);
+    joint_spinner[3]->set_speed(0.1);
+    joint_spinner[3]->set_float_limits(JOINT_MIN, JOINT_MAX, GLUI_LIMIT_CLAMP);
+    
+    // Control for joint on left foot
+    joint_spinner[4]
+    = glui->add_spinner("Left foot Joint", GLUI_SPINNER_FLOAT, &left_foot_joint_rot);
+    joint_spinner[4]->set_speed(0.1);
+    joint_spinner[4]->set_float_limits(JOINT_MIN, JOINT_MAX, GLUI_LIMIT_CLAMP);
+    
+    // Control for joint on right foot
+    joint_spinner[5]
+    = glui->add_spinner("Right Foot Joint", GLUI_SPINNER_FLOAT, &right_foot_joint_rot);
+    joint_spinner[5]->set_speed(0.1);
+    joint_spinner[5]->set_float_limits(JOINT_MIN, JOINT_MAX, GLUI_LIMIT_CLAMP);
+    
+    // Control for beak
+    joint_spinner[6]
+    = glui->add_spinner("Beak Height", GLUI_SPINNER_FLOAT, &beak_y);
+    joint_spinner[6]->set_speed(0.1);
+    joint_spinner[6]->set_float_limits(JOINT_MIN, JOINT_MAX, GLUI_LIMIT_CLAMP);
+    
+    // Control for wing scaling
+    joint_spinner[7]
+    = glui->add_spinner("Wing Scaling", GLUI_SPINNER_FLOAT, &wing_y);
+    joint_spinner[7]->set_speed(0.1);
+    joint_spinner[7]->set_float_limits(JOINT_MIN, JOINT_MAX, GLUI_LIMIT_CLAMP);
+    
+    // Control for body on x-axis
+    joint_spinner[8]
+    = glui->add_spinner("Body x-axis", GLUI_SPINNER_FLOAT, &body_x);
+    joint_spinner[8]->set_speed(0.1);
+    joint_spinner[8]->set_float_limits(JOINT_MIN, JOINT_MAX, GLUI_LIMIT_CLAMP);
+    
+    // Control for body on y-axis
+    joint_spinner[9]
+    = glui->add_spinner("Body y-axis", GLUI_SPINNER_FLOAT, &body_y);
+    joint_spinner[9]->set_speed(0.1);
+    joint_spinner[9]->set_float_limits(JOINT_MIN, JOINT_MAX, GLUI_LIMIT_CLAMP);
 
     // Add button to specify animation mode 
     glui->add_separator();
@@ -268,11 +355,6 @@ void initGl(void)
 // Callback idle function for animating the scene
 void animate()
 {
-    // Update geometry
-    const double joint_rot_speed = 0.1;
-    double joint_rot_t = (sin(animation_frame*joint_rot_speed) + 1.0) / 2.0;
-    joint_rot = joint_rot_t * JOINT_MIN + (1 - joint_rot_t) * JOINT_MAX;
-    
     ///////////////////////////////////////////////////////////
     // TODO:
     //   Modify this function animate the character's joints
@@ -280,6 +362,15 @@ void animate()
     //   should only happen in the display() callback.
     ///////////////////////////////////////////////////////////
 
+    animateHead();
+    animateBeak();
+    animateWing();
+    animateLeftLeg();
+    animateLeftFoot();
+    animateRightLeg();
+    animateRightFoot();
+    animateBody();
+    
     // Update user interface
     glui->sync_live();
 
@@ -296,6 +387,78 @@ void animate()
     usleep(50000);
 }
 
+
+void animateHead(){
+    // Update geometry
+    const double joint_rot_speed = 0.1;
+    double joint_rot_t = (sin(animation_frame*joint_rot_speed) + 1.0) / 2.0;
+    joint_rot = joint_rot_t * JOINT_MIN + (1 - joint_rot_t) * JOINT_MAX;
+}
+
+
+void animateBeak() {
+    // Update geometry
+    const double joint_rot_speed = 0.13;
+    double joint_rot_t = (sin(animation_frame*joint_rot_speed) + 1.0) / 2.0;
+    beak_y = joint_rot_t * BEAK_MIN + (1 - joint_rot_t) * BEAK_MAX;
+
+}
+
+
+void animateWing() {
+    // Update geometry
+    const double joint_rot_speed = 0.05;
+    double joint_rot_t = (sin(animation_frame*joint_rot_speed) + 1.0) / 2.0;
+    wing_joint_rot = joint_rot_t * JOINT_MIN + (1 - joint_rot_t) * JOINT_MAX;
+    
+    const double scaling_speed = 0.1;
+    joint_rot_t = (sin(animation_frame*scaling_speed) + 1.0) / 2.0;
+    wing_y = joint_rot_t * WING_MIN + (1 - joint_rot_t) * WING_MAX;
+}
+
+void animateRightFoot() {
+    // Update geometry
+    const double joint_rot_speed = 0.05;
+    double joint_rot_t = (sin(animation_frame*joint_rot_speed) + 1.0) / 2.0;
+    right_foot_joint_rot = joint_rot_t * JOINT_MIN + (1 - joint_rot_t) * JOINT_MAX;
+}
+
+
+void animateRightLeg() {
+    // Update geometry
+    const double joint_rot_speed = 0.1;
+    double joint_rot_t = (sin(animation_frame*joint_rot_speed) + 1.0) / 2.0;
+    right_leg_joint_rot = joint_rot_t * JOINT_MIN + (1 - joint_rot_t) * JOINT_MAX;
+}
+
+void animateLeftLeg() {
+    // Update geometry
+    const double joint_rot_speed = 0.1;
+    double joint_rot_t = (sin(animation_frame*joint_rot_speed) + 1.0) / 2.0;
+    left_leg_joint_rot = joint_rot_t * JOINT_MIN + (1 - joint_rot_t) * JOINT_MAX;
+
+}
+
+void animateLeftFoot() {
+    // Update geometry
+    const double joint_rot_speed = 0.1;
+    double joint_rot_t = (sin(animation_frame*joint_rot_speed) + 1.0) / 2.0;
+    left_foot_joint_rot = joint_rot_t * JOINT_MIN + (1 - joint_rot_t) * JOINT_MAX;
+
+}
+
+void animateBody() {
+    double x_speed = 0.1;
+    double y_speed = 0.01;
+    
+    double x_rot_t = (sin(animation_frame*x_speed) + 1.0) / 2.0;
+    body_x = x_rot_t * BODY_X_MIN + (1 - x_rot_t) * BODY_X_MAX;
+
+    
+    double y_rot_t = (sin(animation_frame*y_speed) + 1.0) / 2.0;
+    body_y = y_rot_t * BODY_Y_MIN + (1 - y_rot_t) * BODY_Y_MAX;
+    
+}
 
 // Handles the window being resized by updating the viewport
 // and projection matrices
@@ -351,7 +514,12 @@ void display(void)
     // Push the current transformation matrix on the stack
     glPushMatrix();
         
-    // Draw the 'body'
+    // Draw the whole system
+    glPushMatrix();
+    // Translate the whole system
+    glTranslatef(body_x, body_y, 0.0);
+    
+    // Draw the body
     glPushMatrix();
     // Set the colour to green
     glColor3f(0.0, 1.0, 0.0);
@@ -371,7 +539,7 @@ void display(void)
     // First draw the head
     glPushMatrix();
     // Move to the location of the head
-    glTranslatef(0.0, 13, 0.0);
+    glTranslatef(0.0, 10, 0.0);
     glColor3f(1.0, 0.0, 0.0);
     drawHead();
     glPopMatrix();
@@ -387,26 +555,53 @@ void display(void)
     // Third draw the beak
     glPushMatrix();
     // Move to the beak location
-    glTranslatef(-UPPER_WIDTH, 5, 0.0);
+    glTranslatef(-UPPER_WIDTH, beak_y, 0.0);
     glScalef(BEAK_LENGTH, BEAK_WIDTH, 0.0);
     glColor3f(0.0, 0.0, 0.0);
     drawSquare(1.0);
     glPopMatrix();
     
+    // Draw the eye
+    glPushMatrix();
+    glTranslatef(-UPPER_WIDTH/4, 2*FACE_HEIGHT/3, 0.0);
+    glColor3f(0.0, 0.0, 0.0);
+    drawColouredCircle(EYE_RADIUS);
+    glPopMatrix();
+    
+    // Finally draw the joint
+    glPushMatrix();
+    glColor3f(1.0, 1.0, 1.0);
+    drawCircle(JOINT_RADIUS);
+    glPopMatrix();
+    
     glPopMatrix();
     /** End of head+mouth system **/
     
-    // Draw the wing
+    /**
+     ** Draw the wing
+     **/
     glPushMatrix();
     // Move to the joint
     glTranslatef(0.0, BODY_HEIGHT/4, 0.0);
     // Rotate on the joint
-    glRotatef(joint_rot, 0.0, 0.0, 1.0);
+    glRotatef(wing_joint_rot, 0.0, 0.0, 1.0);
+    
+    // First draw the wing
+    glPushMatrix();
     // Move the center
     glTranslatef(0.0, -WING_HEIGHT/2+JOINT_OFFSET, 0.0);
     glColor3f(0.0, 0.0, 1.0);
-    drawTrapzoid();
+    drawTrapzoid(wing_y);
     glPopMatrix();
+    
+    // Second draw the joint
+    glPushMatrix();
+    glColor3f(1.0, 1.0, 1.0);
+    drawCircle(JOINT_RADIUS);
+    glPopMatrix();
+    
+    glPopMatrix();
+    /** End of wing **/
     
     /**
      ** Draw the left leg+foot system
@@ -416,7 +611,7 @@ void display(void)
     // Translate to the joint of the leg
     glTranslatef(-BODY_BUTT_WIDTH/5-JOINT_OFFSET, -BUTT_HEIGHT-8, 0.0);
     // Rotate on the joint for the entire system
-    glRotatef(joint_rot, 0.0, 0.0, 1.0);
+    glRotatef(left_leg_joint_rot, 0.0, 0.0, 1.0);
     
     // First draw the leg
     glPushMatrix();
@@ -428,12 +623,19 @@ void display(void)
     drawSquare(1.0);
     glPopMatrix();
     
+    // Now draw the joint
+    glPushMatrix();
+    glColor3f(1.0, 1.0, 1.0);
+    drawCircle(JOINT_RADIUS);
+    glPopMatrix();
+    
     // Second draw the foot
     glPushMatrix();
     // Translate to the joint of the foot
     glTranslatef(0.0, -LEG_HEIGHT+2*JOINT_OFFSET, 0.0);
     // Foot's rotation on the foot's joint
-    glRotatef(joint_rot, 0.0, 0.0, 1.0);
+    glRotatef(left_foot_joint_rot, 0.0, 0.0, 1.0);
+    
     // Now apply foot's indiviual translation
     glPushMatrix();
     glTranslatef(-FOOT_LENGTH/2+JOINT_OFFSET, 0.0, 0.0);
@@ -442,6 +644,13 @@ void display(void)
     glColor3f(0.0, 0.5, 0.5);
     drawSquare(1.0);
     glPopMatrix();
+    
+    // Now draw the joint
+    glPushMatrix();
+    glColor3f(1.0, 1.0, 1.0);
+    drawCircle(JOINT_RADIUS);
+    glPopMatrix();
+    
     glPopMatrix();
     
     glPopMatrix();
@@ -455,7 +664,7 @@ void display(void)
     // Translate to the joint of the leg
     glTranslatef(BODY_BUTT_WIDTH/5+JOINT_OFFSET, -BUTT_HEIGHT-8, 0.0);
     // Rotate on the joint for the entire system
-    glRotatef(joint_rot, 0.0, 0.0, 1.0);
+    glRotatef(right_leg_joint_rot, 0.0, 0.0, 1.0);
     
     // First draw the leg
     glPushMatrix();
@@ -467,12 +676,18 @@ void display(void)
     drawSquare(1.0);
     glPopMatrix();
     
+    // Now draw the joint
+    glPushMatrix();
+    glColor3f(1.0, 1.0, 1.0);
+    drawCircle(JOINT_RADIUS);
+    glPopMatrix();
+    
     // Second draw the foot
     glPushMatrix();
     // Translate to the joint of the foot
     glTranslatef(0.0, -LEG_HEIGHT+2*JOINT_OFFSET, 0.0);
     // Foot's rotation on the foot's joint
-    glRotatef(joint_rot, 0.0, 0.0, 1.0);
+    glRotatef(right_foot_joint_rot, 0.0, 0.0, 1.0);
     // Now apply foot's indiviual translation
     glPushMatrix();
     glTranslatef(-FOOT_LENGTH/2+JOINT_OFFSET, 0.0, 0.0);
@@ -481,11 +696,20 @@ void display(void)
     glColor3f(0.0, 0.5, 0.5);
     drawSquare(1.0);
     glPopMatrix();
+    
+    // Now draw the joint
+    glPushMatrix();
+    glColor3f(1.0, 1.0, 1.0);
+    drawCircle(JOINT_RADIUS);
+    glPopMatrix();
+    
     glPopMatrix();
     
     glPopMatrix();
     /** End of right leg+foot system **/
     
+    // End of the whole system
+    glPopMatrix();
     
     // Retrieve the previous state of the transformation stack
     glPopMatrix();
@@ -536,12 +760,42 @@ void drawMouth() {
 
 
 // Draw the wing
-void drawTrapzoid() {
+void drawTrapzoid(float wing_y) {
+    // Scaling along y-axis, with upper line fixed
+    float lower_y = -WING_HEIGHT/2 * wing_y;
+    
     glBegin(GL_POLYGON);
     glVertex2f(-WING_UPPER_WIDTH/2, WING_HEIGHT/2);
     glVertex2f(WING_UPPER_WIDTH/2, WING_HEIGHT/2);
-    glVertex2f(WING_LOWER_WIDTH/2, -WING_HEIGHT/2);
-    glVertex2f(-WING_LOWER_WIDTH/2, -WING_HEIGHT/2);
+    glVertex2f(WING_LOWER_WIDTH/2, lower_y);
+    glVertex2f(-WING_LOWER_WIDTH/2, lower_y);
+    glEnd();
+}
+
+
+// Draw a circle
+void drawCircle(float radius) {
+    glBegin(GL_LINE_LOOP);
+    int i;
+    for (i = 0; i < 360; i++)
+    {
+        float degInRad = i * (PI/180);
+        glVertex2f(cos(degInRad)*radius,sin(degInRad)*radius);
+    }
+    
+    glEnd();
+}
+
+// Draw a circle with color
+void drawColouredCircle(float radius) {
+    glBegin(GL_POLYGON);
+    int i;
+    for (i = 0; i < 360; i++)
+    {
+        float degInRad = i * (PI/180);
+        glVertex2f(cos(degInRad)*radius,sin(degInRad)*radius);
+    }
+    
     glEnd();
 }
 
